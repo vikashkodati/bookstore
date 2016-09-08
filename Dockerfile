@@ -1,20 +1,26 @@
-FROM ubuntu:14.04
-MAINTAINER abhinav.akey@gmail.com
+FROM alpine:3.3
+ARG VERSION=8.92.14-r0
+ENV MAJOR=8
 
-# Install Java.
-RUN \
-  echo oracle-java7-installer shared/accepted-oracle-license-v1-1 select true | debconf-set-selections && \
-  add-apt-repository -y ppa:webupd8team/java && \
-  apt-get update && \
-  apt-get install -y oracle-java7-installer && \
-  rm -rf /var/lib/apt/lists/* && \
-  rm -rf /var/cache/oracle-jdk7-installer
+
+RUN apk update --purge \
+&& apk add curl \
+&& apk add unzip=6.0-r1 \
+&& apk add openjdk8-jre-base=8.92.14-r0
+
+
+RUN curl -s -k -L -C - -b "oraclelicense=accept-securebackup-cookie" http://download.oracle.com/otn-pub/java/jce/${MAJOR}/jce_policy-${MAJOR}.zip > /tmp/jce_policy-${MAJOR}.zip \
+&& unzip -d /tmp/ /tmp/jce_policy-${MAJOR}.zip \
+&& rm -vf /usr/lib/jvm/java-1.${MAJOR}-openjdk/jre/lib/security/*.jar \
+&& cp -vf /tmp/UnlimitedJCEPolicyJDK${MAJOR}/*.jar /usr/lib/jvm/java-1.${MAJOR}-openjdk/jre/lib/security \
+&& rm -rf /tmp/*
+
+
+RUN apk del --force --purge unzip \
+&& apk del --force --purge curl
 
 # Define working directory.
 WORKDIR /data
-
-# Define commonly used JAVA_HOME variable
-ENV JAVA_HOME /usr/lib/jvm/java-7-oracle
 
 EXPOSE 8080
 ADD target/*SNAPSHOT.jar /data/bookstore.jar
